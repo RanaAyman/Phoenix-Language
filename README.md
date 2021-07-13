@@ -2,7 +2,7 @@
 
 ![Phoenix-Language](img.jpg)
 
-## Simple grammar of the language using a tool named JavaCC
+## The grammar of the language using a tool named JavaCC
 
 ### The language supports evaluating the grammar expressions
 
