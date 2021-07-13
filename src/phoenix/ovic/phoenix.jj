@@ -1,0 +1,254 @@
+options
+{
+  STATIC = false;
+}
+
+PARSER_BEGIN(Phoenix)
+package phoenix.ovic;
+import java.io.StringReader;
+import java.util.Map;
+import java.util.HashMap;
+
+public class Phoenix
+{
+  int i =0;
+  int op1=0;
+  int op2=0;
+  int value =0;
+  String operInner=null;
+  String operOuter="+";
+  int temp=0;
+  HashMap<String,Integer> map = new HashMap<String,Integer>();
+  String varName=null;
+  boolean boolFlag;
+  boolean notFlag;
+  //a:=((1-3)-(2+5)+8)
+  //a:=3;b:=3;c:=4;if (!(a==b)^!(c==4)) then skip else skip
+  // main method is in a separate file
+}
+
+PARSER_END(Phoenix)
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+| < "//" (~[ "\n", "\r" ])*
+    (
+      "\n"
+    | "\r"
+    ) >
+| < "/*" (~[ "*" ])* "*"
+    (
+      ~[ "/" ] (~[ "*" ])* "*"
+    )*
+    "/" >
+}
+
+TOKEN :
+{
+  < #DIGIT : ([ "0"-"9" ]) >
+}
+
+TOKEN :
+{
+  < TRUE : "tt" >
+}
+
+TOKEN :
+{
+  < FALSE : "ff" >
+}
+
+TOKEN :
+{
+  < #LETTER : ([ "a"-"f" ]) >
+}
+
+TOKEN :
+{
+  < PLUS : "+" >
+}
+
+TOKEN :
+{
+  < MINUS : "-" >
+}
+
+TOKEN :
+{
+  < ASSIGN : ":=" >
+}
+
+TOKEN :
+{
+  < EQUAL : "==" >
+}
+
+TOKEN :
+{
+  < SEMICOLON : ";" >
+}
+
+TOKEN :
+{
+  < LBRACE : "(" >
+}
+
+TOKEN :
+{
+  < RBRACE : ")" >
+}
+
+TOKEN :
+{
+  < Var : < LETTER > (< LETTER >)* >
+}
+
+TOKEN :
+{
+  < Num : < DIGIT > (< DIGIT >)* >
+}
+
+TOKEN :
+{
+  < OR : "^" >
+}
+
+TOKEN :
+{
+  < NOT : "!" >
+}
+
+TOKEN :
+{
+  < SKIPC : "skip" >
+}
+
+TOKEN :
+{
+  < IF : "if" >
+}
+
+TOKEN :
+{
+  < THEN : "then" >
+}
+
+TOKEN :
+{
+  < ELSE : "else" >
+}
+
+TOKEN :
+{
+  < WHILE : "while" >
+}
+
+TOKEN :
+{
+  < DO : "do" >
+}
+
+void start() :
+{}
+{
+  ComA() < EOF >
+}
+
+void ComA() :
+{}
+{
+  Com()
+  (
+    < SEMICOLON > Com()
+  )*
+| AExp()// ??????????
+}
+
+void Com() :
+{}
+{
+  < SKIPC >
+| varName=getVar() { temp=0;} < ASSIGN > AExp(){ map.put(varName,temp); System.out.println(varName+":= " + map.get(varName));}
+| < IF > BExpA() < THEN > ComA() < ELSE > ComA()
+| < WHILE > BExpA()
+//{ while(boolFlag) }
+< DO > ComA()
+}
+
+void BExpA() :
+{boolean t1=false,t2=false;}
+{
+  (< LBRACE >)? BExp(){ if(notFlag) boolFlag= !boolFlag; notFlag=false;t1=boolFlag;}
+  (
+    < OR > { t1=boolFlag;} BExp() {if(notFlag) boolFlag= !boolFlag; notFlag=false; t2=boolFlag; boolFlag= t1|t2; }
+  )*
+  (< RBRACE >)?
+  {
+//    System.out.println("t1 = "+t1+" ,t2 = "+t2+ " boolFlag = "+boolFlag);
+  }
+}
+
+void BExp() :
+{int t1=0,t2=0;  }
+{
+  (    
+  (
+    < LBRACE >)*
+  (
+    AExp() { t1=value; }
+  )
+  < EQUAL >
+  (
+    AExp() { t2=value; }
+  )
+  (
+    < RBRACE >)* { if(t1==t2) boolFlag=true; else boolFlag=false;}
+| < NOT > {notFlag=true; } BExpA()
+// { System.out.println("here??");boolFlag= !boolFlag;}
+| < FALSE > { boolFlag=false;}
+| < TRUE > { boolFlag=true;}
+)
+{
+//  System.out.println(boolFlag);
+}
+}
+void AExp(): {}
+{("(")* (<PLUS> {operOuter="+"; }| <MINUS>{operOuter="-"; })? AExpB() ((<PLUS>{operOuter="+"; }| <MINUS>{operOuter="-"; }) AExpB())* (")")*}
+
+void AExpB(): {value=0; op1=0; op2=0;}
+{("(")* (<PLUS>{operInner="+"; }| <MINUS>{operInner="-"; })?
+(op1=getInt(){value += op1 ; }|op1=getValOfVar() { value += op1 ;}) ((<PLUS>{operInner="+"; }| <MINUS>{operInner="-"; }) (op2=getInt(){if(operInner.contains("+")) value += op2 ; else value-=op2; }| op2=getValOfVar(){if(operInner.contains("+")) value += op2 ; else value-=op2; }))* (")")*
+{
+  if(operOuter.contains("+")) temp+=value; else temp-=value; 
+  if(operInner!=null)
+   System.out.println("Calculation  "+op1+" "+operInner+" "+op2+" =  " + value);
+}
+}
+
+int getInt() throws NumberFormatException : //get Number
+{Token t ;}
+{
+t=<Num>
+{ return Integer.parseInt( t.image ) ; }
+}
+
+String getVar() : //get variable
+{Token t ;}
+{
+t=<Var>
+{ return t.image ; }
+}
+
+int getValOfVar():  //get integer value assigned to variable
+{Token t ;  String var;}
+{
+  t=<Var>
+{
+  var = t.image ;
+  if(map.containsKey(var)) return map.get(var); else System.out.println(var +" is undefined. We will consider it zero"); return 0;
+}
+}
