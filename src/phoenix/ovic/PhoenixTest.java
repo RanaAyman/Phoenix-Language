@@ -7,7 +7,7 @@ import java.io.StringReader;
 import org.junit.jupiter.api.Test;
 
 class PhoenixTest {
-//
+
 	public boolean Validate(String str) {
 		StringReader sr = new StringReader(str);
 		Phoenix Test= new Phoenix(sr);
